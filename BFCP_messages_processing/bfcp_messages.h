@@ -114,7 +114,7 @@ typedef struct bfcp_floor_id_list {	/* FLOOR-ID list, to manage the multiple FLO
 } bfcp_floor_id_list;
 
 typedef struct bfcp_supported_list {	/* list to manage all the supported attributes and primitives */
-	unsigned short int element;		/* Element (Attribute/Primitive) */
+	unsigned char element;		/* Element (Attribute/Primitive) */
 	struct bfcp_supported_list *next;	/* Pointer to next supported element instance */
 } bfcp_supported_list;
 
@@ -246,7 +246,7 @@ int bfcp_add_floor_id_list(bfcp_floor_id_list *list, unsigned short int fID, ...
 int bfcp_free_floor_id_list(bfcp_floor_id_list *list);
 
 /* Create a new Supported (Primitives/Attributes) list (last argument MUST be 0) */
-bfcp_supported_list *bfcp_new_supported_list(unsigned short int element, ...);
+bfcp_supported_list *bfcp_new_supported_list(unsigned char element, ...);
 /* Free a Supported (Primitives/Attributes) list */
 int bfcp_free_supported_list(bfcp_supported_list *list);
 

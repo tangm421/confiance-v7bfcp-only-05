@@ -198,7 +198,7 @@ int bfcp_free_floor_id_list(bfcp_floor_id_list *list)
 }
 
 /* Create a new Supported (Primitives/Attributes) list (last argument MUST be 0) */
-bfcp_supported_list *bfcp_new_supported_list(unsigned short int element, ...)
+bfcp_supported_list *bfcp_new_supported_list(unsigned char element, ...)
 {
 	bfcp_supported_list *first, *previous, *next;
 	va_list ap;
@@ -208,7 +208,7 @@ bfcp_supported_list *bfcp_new_supported_list(unsigned short int element, ...)
 		return NULL;
 	first->element = element;
 	previous = first;
-	element = va_arg(ap, int);
+	element = (unsigned char)va_arg(ap, int);
 	while(element) {
 		next = calloc(1, sizeof(bfcp_supported_list));
 		if(!next)	/* We could not allocate the memory, return a with failure */
@@ -216,7 +216,7 @@ bfcp_supported_list *bfcp_new_supported_list(unsigned short int element, ...)
 		next->element = element;
 		previous->next = next;
 		previous = next;
-		element = va_arg(ap, int);
+		element = (unsigned char)va_arg(ap, int);
 	}
 	va_end(ap);
 	return first;

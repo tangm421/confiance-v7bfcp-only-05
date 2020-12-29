@@ -1,6 +1,6 @@
 CC = gcc
 CC_W32 = i586-mingw32-gcc
-OPTS = -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -O2 -Werror -Wunused
+OPTS = -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -O0 -g -Wunused
 LIBS = -lpthread -lssl -lcrypto
 LIBS_W32 = -lws2_32 -lpthreadGC2 -lssleay32 -llibeay32 #-s
 DEPS_W32 = -L./

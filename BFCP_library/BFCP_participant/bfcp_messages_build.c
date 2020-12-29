@@ -48,7 +48,7 @@ void bfcp_build_commonheader(bfcp_message *message, bfcp_entity *entity, unsigne
 	ch32 = (((ch32 & !(0xE0000000)) | (1)) << 29) +			/* First the Version (3 bits, set to 001) */
 		(((ch32 & !(0x1F000000)) | (0)) << 24) +		/* then the Reserved (5 bits, ignored) */
 		(((ch32 & !(0x00FF0000)) | (primitive)) << 16) +	/* the Primitive (8 bits) */
-		((ch32 & !(0x0000FFFF)) | (message->length - 12));	/* and the payload length (16 bits) */
+		((ch32 & !(0x0000FFFF)) | ((message->length - 12) / 4));	/* and the payload length (16 bits), contains the length of the message in 4-octet units */
 	ch32 = htonl(ch32);		/* We want all protocol values in network-byte-order */
 	memcpy(buffer, &ch32, 4);
 	buffer = buffer+4;
@@ -500,13 +500,12 @@ int bfcp_build_attribute_SUPPORTED_ATTRIBUTES(bfcp_message *message, bfcp_suppor
 	int padding = 0;	/* Number of bytes of padding */
 	int position = message->position;		/* We keep track of where the TLV will have to be */
 	unsigned char *buffer = message->buffer+(message->position)+2;	/* We skip the TLV bytes */
-	unsigned short int ch16;	/* 16 bits */
 	bfcp_supported_list *temp = attributes;
 	while(temp) {	/* Fill all supported attributes */
-		ch16 = htons(temp->element);
-		memcpy(buffer, &ch16, 2);
-		buffer = buffer+2;
-		attrlen = attrlen+2;
+        unsigned char ch = temp->element;
+        buffer[0] = ch << 1;
+		buffer = buffer+1;
+		attrlen = attrlen+1;
 		temp = temp->next;
 	}
 	if((attrlen%4) != 0) {		/* We need padding */
@@ -527,13 +526,12 @@ int bfcp_build_attribute_SUPPORTED_PRIMITIVES(bfcp_message *message, bfcp_suppor
 	int padding = 0;	/* Number of bytes of padding */
 	int position = message->position;		/* We keep track of where the TLV will have to be */
 	unsigned char *buffer = message->buffer+(message->position)+2;	/* We skip the TLV bytes */
-	unsigned short int ch16;	/* 16 bits */
 	bfcp_supported_list *temp = primitives;
 	while(temp) {	/* Fill all supported primitives */
-		ch16 = htons(temp->element);
-		memcpy(buffer, &ch16, 2);
-		buffer = buffer+2;
-		attrlen = attrlen+2;
+        unsigned char ch = temp->element;
+        memcpy(buffer, &ch, 1);
+		buffer = buffer+1;
+		attrlen = attrlen+1;
 		temp = temp->next;
 	}
 	if((attrlen%4) != 0) {		/* We need padding */

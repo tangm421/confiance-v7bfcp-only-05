@@ -624,25 +624,22 @@ bfcp_supported_list *bfcp_parse_attribute_SUPPORTED_ATTRIBUTES(bfcp_message *mes
 		return NULL;
 	int i;
 	bfcp_supported_list *first, *previous, *next;
-	unsigned short int ch16;	/* 16 bits */
 	unsigned char *buffer = message->buffer+recvA->position+2;	/* Skip the Header */
-	int number = (recvA->length-2)/2;	/* Each supported attribute takes 2 bytes */
+	int number = (recvA->length-2);	/* Each supported attribute takes 1 bytes */
 	if(!number)
 		return NULL;	/* No supported attributes? */
 	first = calloc(1, sizeof(bfcp_supported_list));
 	if(!first)	/* An error occurred in creating a new Supported Attributes list */
 		return NULL;
-	memcpy(&ch16, buffer, 2);
-	first->element = ntohs(ch16);
+    first->element = buffer[0] & 0xFE;
 	previous = first;
 	if(number>1) {		/* Let's parse each other supported attribute we find */
 		for(i = 1;i<number;i++) {
 			next = calloc(1, sizeof(bfcp_supported_list));
 			if(!next)	/* An error occurred in creating a new Supported Attributes list */
 				return NULL;
-			buffer = buffer+2;	/* Skip to the next supported attribute */
-			memcpy(&ch16, buffer, 2);
-			next->element = ntohs(ch16);
+            buffer = buffer + 1;	/* Skip to the next supported attribute */
+            next->element = buffer[0] & 0xFE;
 			previous->next = next;
 			previous = next;
 		}
@@ -656,25 +653,22 @@ bfcp_supported_list *bfcp_parse_attribute_SUPPORTED_PRIMITIVES(bfcp_message *mes
 		return NULL;
 	int i;
 	bfcp_supported_list *first, *previous, *next;
-	unsigned short int ch16;	/* 16 bits */
 	unsigned char *buffer = message->buffer+recvA->position+2;	/* Skip the Header */
-	int number = (recvA->length-2)/2;	/* Each supported primitive takes 2 bytes */
+	int number = (recvA->length-2);	/* Each supported primitive takes 1 bytes */
 	if(!number)
 		return NULL;	/* No supported primitives? */
 	first = calloc(1, sizeof(bfcp_supported_list));
 	if(!first)	/* An error occurred in creating a new Supported Attributes list */
 		return NULL;
-	memcpy(&ch16, buffer, 2);
-	first->element = ntohs(ch16);
+    first->element = buffer[0];
 	previous = first;
 	if(number>1) {		/* Let's parse each other supported primitive we find */
 		for(i = 1;i<number;i++) {
 			next = calloc(1, sizeof(bfcp_supported_list));
 			if(!next)	/* An error occurred in creating a new Supported Attributes list */
 				return NULL;
-			buffer = buffer+2;	/* Skip to the next supported primitive */
-			memcpy(&ch16, buffer, 2);
-			next->element = ntohs(ch16);
+            buffer = buffer + 1;	/* Skip to the next supported primitive */
+            next->element = buffer[0];
 			previous->next = next;
 			previous = next;
 		}

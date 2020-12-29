@@ -262,8 +262,9 @@ void menu(char *lineptr)
 				error = scanf ("%i", &userID);
 				BFCP_CHECK_INTEGER;
 #ifndef WIN32
+        text1 = calloc(20, sizeof(char));
 				printf("Enter the IP address of the Floor Control Server: (e.g. 127.0.0.1)\n");
-				scanf (" %a[^\n]", &text1);
+				scanf ("%s", &text1);
 #else
 				/* FIXME fix broken scanf in WIN32 */
 				text1 = calloc(20, sizeof(char));
