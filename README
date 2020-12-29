@@ -1,0 +1,25 @@
+---------------------------------
+http://confiance.sourceforge.net/
+---------------------------------
+
+
+=====
+NOTES
+=====
+
+This package contains all the needed files to build
+a BFCP-enabled application:
+
+	- BFCP_library, which contains the behaviour
+	  libraries for both the client and server
+	  sides;
+	- BFCP_messages_processing, which only contains
+	  the libraries to build and parse BFCP messages
+	  (already included in the BFCP_library behaviour
+	  too, only use if you want to implement a BFCP
+	  behaviour of your own).
+
+Both the libraries come with attached test applications to
+show their use.
+
+A Win32 version of the libraries has been made available too.
