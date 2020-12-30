@@ -193,8 +193,9 @@ bfcp_received_message *bfcp_parse_message(bfcp_message *message)
 			return NULL;	/* An error occurred while recording the error, return with failure */
 	}
 	recvM->primitive = ((ch32 & 0x00FF0000) >> 16);	/* Primitive identifier */
-	recvM->length = (ch32 & 0x0000FFFF) + 12;	/* Payload Lenght of the message + 12 (Common Header) */
-	if(((recvM->length) != message->length) || !(recvM->length)%4) {	/* The message length is wrong */
+    /* cause the Payload Lenght contains the length of the message in 4-octet units, here we need to multiple with 4 */
+	recvM->length = (ch32 & 0x0000FFFF) * 4 + 12;	/* Payload Lenght of the message + 12 (Common Header) */
+	if((recvM->length != message->length) || (recvM->length % 4)) {	/* The message length is wrong */
 			/* Either the length in the header is different from the length of the buffer... */
 			/*   ...or the length is not a multiple of 4, meaning it's surely not aligned */
 		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_WRONG_LENGTH);
