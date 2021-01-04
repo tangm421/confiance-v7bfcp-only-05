@@ -26,7 +26,17 @@
 #define ChairActionAck		10
 #define Hello			11
 #define HelloAck		12
-#define Error			13
+#define ErrorBfcp		13      /* Avoid confict with sip stack enum definition */
+/* Add new primitives based on https://datatracker.ietf.org/doc/html/draft-ietf-bfcpbis-rfc4582bis-03#section-5.1 Table 1: BFCP primitives
+ * cause after draft-ietf-bfcpbis-rfc4582bis-03 version ErrorAck would be removed from primitives.
+ * we refer to Huawei's software TE Desktop definition, define FloorStatusAck as 16
+*/
+#define FloorRequestStatusAck 14
+#define ErrorAck            15
+#define FloorStatusAck      16
+#define Goodbye             17
+#define GoodbyeAck          18
+
 
 /* Attributes */
 #define BENEFICIARY_ID			1
@@ -77,16 +87,23 @@
 #define BFCP_FLOORREQUEST_DOES_NOT_EXIST	7
 #define BFCP_MAX_FLOORREQUESTS_REACHED		8
 #define BFCP_USE_TLS				9
-#define BFCP_DIGEST_ATTRIBUTE_REQUIRED		10
-#define BFCP_INVALID_NONCE			11
-#define BFCP_AUTHENTICATION_FAILED		12
+/* Add new ERROR-CODE based on https://datatracker.ietf.org/doc/html/draft-ietf-bfcpbis-rfc4582bis-03#section-5.2.6 Table 5: Error Code meaning */
+#define BFCP_UNABLE_TO_PARSE_MESSAGE        10
+#define BFCP_USE_DTLS                       11
+#define BFCP_UNSUPPORTED_VERSION            12
+#define BFCP_INCORRECT_MESSAGE_LENGTH       13
+#define BFCP_GENERIC_ERROR                  14
+/* Keep the original definition */
+#define BFCP_DIGEST_ATTRIBUTE_REQUIRED      15
+#define BFCP_INVALID_NONCE                  16
+#define BFCP_AUTHENTICATION_FAILED          17
 
 /* Parsing-specific Error Codes */
-#define BFCP_WRONG_VERSION	1
-#define BFCP_RESERVED_NOT_ZERO	2
-#define BFCP_UNKNOWN_PRIMITIVE	3
-#define BFCP_UNKNOWN_ATTRIBUTE	4
-#define BFCP_WRONG_LENGTH	5
+#define BFCP_PARSING_WRONG_VERSION	1
+#define BFCP_PARSING_RESERVED_NOT_ZERO	2
+#define BFCP_PARSING_UNKNOWN_PRIMITIVE	3
+#define BFCP_PARSING_UNKNOWN_ATTRIBUTE	4
+#define BFCP_PARSING_WRONG_LENGTH	5
 #define BFCP_PARSING_ERROR	6
 
 
@@ -187,6 +204,7 @@ typedef struct bfcp_arguments {
 	bfcp_supported_list *attributes;		/* Supported Primitives list */
 	unsigned short int nonce;			/* Nonce (currently UNUSED) */
 	bfcp_digest *digest;				/* Digest Algorithm & Text */
+    int use_unreliable_transport;       /* wether using BFCP over unreliable transport or not, default is 1 */
 } bfcp_arguments;
 
 /* Parsing Help Structures */
@@ -202,9 +220,11 @@ typedef struct bfcp_received_attribute {	/* A chained list to manage all attribu
 typedef struct bfcp_received_message {
 	bfcp_arguments *arguments;			/* The message unpacked in its original arguments */
 	int version;					/* The version of the received message */
+    int responder_flag;             /* The Transaction Responder (R) flag-bit */
+    int fragmentation_flag;         /* The Fragmentation(F) flag - bit */
 	int reserved;					/* The reserved bits */
 	int primitive;					/* The primitive of the message */
-	int length;					/* The length of the message */
+	int length;						/* The length of the message */
 	bfcp_entity *entity;				/* The entities of the message (IDs) */
 	bfcp_received_attribute *first_attribute;	/* A list of all attributes in the message */
 	struct bfcp_received_message_error *errors;	/* If errors occur, we write them here */
@@ -305,7 +325,7 @@ int bfcp_free_digest(bfcp_digest *digest);
 /* Generic BuildMessage Method */
 bfcp_message *bfcp_build_message(bfcp_arguments* arguments);
 /* Build Headers */
-void bfcp_build_commonheader(bfcp_message *message, bfcp_entity *entity, unsigned short int primitive);
+void bfcp_build_commonheader(bfcp_message *message, bfcp_entity *entity, unsigned short int primitive, int response_on_unreliable);
 void bfcp_build_attribute_tlv(bfcp_message *message, unsigned short int position, unsigned short int type, unsigned short int mandatory_bit, unsigned short int length);
 /* Build Specific Messages */
 bfcp_message *bfcp_build_message_FloorRequest(bfcp_entity *entity, bfcp_floor_id_list *fID, unsigned short int bID, char *pInfo, unsigned short int priority);
@@ -313,14 +333,19 @@ bfcp_message *bfcp_build_message_FloorRelease(bfcp_entity *entity, unsigned shor
 bfcp_message *bfcp_build_message_FloorRequestQuery(bfcp_entity *entity, unsigned short int frqID);
 bfcp_message *bfcp_build_message_FloorRequestStatus(bfcp_entity *entity, bfcp_floor_request_information *frqInfo);
 bfcp_message *bfcp_build_message_UserQuery(bfcp_entity *entity, unsigned short int bID);
-bfcp_message *bfcp_build_message_UserStatus(bfcp_entity *entity, bfcp_user_information *beneficiary, bfcp_floor_request_information *frqInfo);
+bfcp_message *bfcp_build_message_UserStatus(bfcp_entity *entity, bfcp_user_information *beneficiary, bfcp_floor_request_information *frqInfo, int response_on_unreliable);
 bfcp_message *bfcp_build_message_FloorQuery(bfcp_entity *entity, bfcp_floor_id_list *fID);
 bfcp_message *bfcp_build_message_FloorStatus(bfcp_entity *entity, bfcp_floor_id_list *fID, bfcp_floor_request_information *frqInfo);
 bfcp_message *bfcp_build_message_ChairAction(bfcp_entity *entity, bfcp_floor_request_information *frqInfo);
-bfcp_message *bfcp_build_message_ChairActionAck(bfcp_entity *entity);
+bfcp_message *bfcp_build_message_ChairActionAck(bfcp_entity *entity, int response_on_unreliable);
 bfcp_message *bfcp_build_message_Hello(bfcp_entity *entity);
-bfcp_message *bfcp_build_message_HelloAck(bfcp_entity *entity, bfcp_supported_list *primitives, bfcp_supported_list *attributes);
+bfcp_message *bfcp_build_message_HelloAck(bfcp_entity *entity, bfcp_supported_list *primitives, bfcp_supported_list *attributes, int response_on_unreliable);
 bfcp_message *bfcp_build_message_Error(bfcp_entity *entity, bfcp_error *error, char *eInfo);
+bfcp_message *bfcp_build_message_FloorRequestStatusAck(bfcp_entity *entity, int response_on_unreliable);
+bfcp_message *bfcp_build_message_ErrorAck(bfcp_entity *entity, int response_on_unreliable);
+bfcp_message *bfcp_build_message_FloorStatusAck(bfcp_entity *entity, int response_on_unreliable);
+bfcp_message *bfcp_build_message_Goodbye(bfcp_entity *entity);
+bfcp_message *bfcp_build_message_GoodbyeAck(bfcp_entity *entity, int response_on_unreliable);
 
 /* Build Attributes */
 int bfcp_build_attribute_BENEFICIARY_ID(bfcp_message *message, unsigned short int bID);

@@ -19,7 +19,7 @@ bfcp_message *bfcp_build_message(bfcp_arguments* arguments)
 		case UserQuery:
 			return bfcp_build_message_UserQuery(arguments->entity, arguments->bID);
 		case UserStatus:
-			return bfcp_build_message_UserStatus(arguments->entity, arguments->beneficiary, arguments->frqInfo);
+			return bfcp_build_message_UserStatus(arguments->entity, arguments->beneficiary, arguments->frqInfo, arguments->use_unreliable_transport);
 		case FloorQuery:
 			return bfcp_build_message_FloorQuery(arguments->entity, arguments->fID);
 		case FloorStatus:
@@ -27,28 +27,49 @@ bfcp_message *bfcp_build_message(bfcp_arguments* arguments)
 		case ChairAction:
 			return bfcp_build_message_ChairAction(arguments->entity, arguments->frqInfo);
 		case ChairActionAck:
-			return bfcp_build_message_ChairActionAck(arguments->entity);
+			return bfcp_build_message_ChairActionAck(arguments->entity, arguments->use_unreliable_transport);
 		case Hello:
 			return bfcp_build_message_Hello(arguments->entity);
 		case HelloAck:
-			return bfcp_build_message_HelloAck(arguments->entity, arguments->primitives, arguments->attributes);
-		case Error:
+			return bfcp_build_message_HelloAck(arguments->entity, arguments->primitives, arguments->attributes, arguments->use_unreliable_transport);
+		case ErrorBfcp:
 			return bfcp_build_message_Error(arguments->entity, arguments->error, arguments->eInfo);
+        case FloorRequestStatusAck:
+            return bfcp_build_message_FloorRequestStatusAck(arguments->entity, arguments->use_unreliable_transport);
+        case ErrorAck:
+            return bfcp_build_message_ErrorAck(arguments->entity, arguments->use_unreliable_transport);
+        case FloorStatusAck:
+            return bfcp_build_message_FloorStatusAck(arguments->entity, arguments->use_unreliable_transport);
+        case Goodbye:
+            return bfcp_build_message_Goodbye(arguments->entity);
+        case GoodbyeAck:
+            return bfcp_build_message_GoodbyeAck(arguments->entity, arguments->use_unreliable_transport);
 		default:
 			return NULL;	/* Unrecognized Primitive: return with a failure */
 	}
 }
 
 /* Build the message Common Header */
-void bfcp_build_commonheader(bfcp_message *message, bfcp_entity *entity, unsigned short int primitive)
+void bfcp_build_commonheader(bfcp_message *message, bfcp_entity *entity, unsigned short int primitive, int response_on_unreliable)
 {
 	unsigned int ch32;		/* 32 bits */
 	unsigned short int ch16;	/* 16 bits */
 	unsigned char *buffer = message->buffer;
-	ch32 = (((ch32 & !(0xE0000000)) | (1)) << 29) +			/* First the Version (3 bits, set to 001) */
-		(((ch32 & !(0x1F000000)) | (0)) << 24) +		/* then the Reserved (5 bits, ignored) */
-		(((ch32 & !(0x00FF0000)) | (primitive)) << 16) +	/* the Primitive (8 bits) */
-		((ch32 & !(0x0000FFFF)) | ((message->length - 12) / 4));	/* and the payload length (16 bits), contains the length of the message in 4-octet units */
+    ch32 = (((ch32 & !(0xE0000000)) | (1)) << 29) +                             /* First the Version (3 bits, set to 001) */
+        (((ch32 & !(0x10000000)) | (response_on_unreliable ? 1 : 0)) << 28) +   /* The Transaction Responder (R) flag-bit */
+        (((ch32 & !(0x08000000)) | 0) << 27) +                                  /* The Fragmentation(F) flag - bit */
+        (((ch32 & !(0x07000000)) | 0) << 24) +                                  /* then the Reserved (3 bits, ignored) */
+        (((ch32 & !(0x00FF0000)) | primitive) << 16) +                          /* the Primitive (8 bits) */
+        ((ch32 & !(0x0000FFFF)) | ((message->length - 12) / 4));                /* and the payload length (16 bits), contains the length of the message in 4-octet units, excluding the common header. */
+
+//     ch32 = 0 +
+//         (0xE0000000 & (1 << 29)) +               /* First the Version (3 bits, set to 001) */
+//         (0x10000000 & (responder << 28)) +          /* The Transaction Responder (R) flag-bit */
+//         (0x08000000 & (0 << 27)) +                  /* The Fragmentation(F) flag - bit */
+//         (0x07000000 & (0 << 24)) +                  /* the Reserved (3 bits, ignored) */
+//         (0x00FF0000 & (primitive << 16)) +          /* the Primitive (8 bits) */
+//         (0x0000FFFF & ((message->length - 12) / 4));/* and the payload length (16 bits), contains the length of the message in 4-octet units, excluding the common header. */
+
 	ch32 = htonl(ch32);		/* We want all protocol values in network-byte-order */
 	memcpy(buffer, &ch32, 4);
 	buffer = buffer+4;
@@ -110,7 +131,7 @@ bfcp_message *bfcp_build_message_FloorRequest(bfcp_entity *entity, bfcp_floor_id
 			return NULL;
 	}
 	/* Append the attributes buffer to the common header one */
-	bfcp_build_commonheader(message, entity, FloorRequest);
+	bfcp_build_commonheader(message, entity, FloorRequest, 0);
 	return message;
 }
 
@@ -125,7 +146,7 @@ bfcp_message *bfcp_build_message_FloorRelease(bfcp_entity *entity, unsigned shor
 	err = bfcp_build_attribute_FLOOR_REQUEST_ID(message, frqID);	/* This attribute is compulsory */
 	if(err == -1)	/* We couldn't build this attribute, return with a failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, FloorRelease);
+	bfcp_build_commonheader(message, entity, FloorRelease, 0);
 	return message;
 }
 
@@ -140,7 +161,7 @@ bfcp_message *bfcp_build_message_FloorRequestQuery(bfcp_entity *entity, unsigned
 	err = bfcp_build_attribute_FLOOR_REQUEST_ID(message, frqID);	/* This attribute is compulsory */
 	if(err == -1)	/* We couldn't build this attribute, return with a failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, FloorRequestQuery);
+	bfcp_build_commonheader(message, entity, FloorRequestQuery, 0);
 	return message;
 }
 
@@ -155,7 +176,7 @@ bfcp_message *bfcp_build_message_FloorRequestStatus(bfcp_entity *entity, bfcp_fl
 	err = bfcp_build_attribute_FLOOR_REQUEST_INFORMATION(message, frqInfo);	/* This attribute is compulsory */
 	if(err == -1)	/* We couldn't build this attribute, return with a failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, FloorRequestStatus);
+	bfcp_build_commonheader(message, entity, FloorRequestStatus, 0);
 	return message;
 }
 
@@ -170,12 +191,12 @@ bfcp_message *bfcp_build_message_UserQuery(bfcp_entity *entity, unsigned short i
 		if(err == -1)	/* We couldn't build this attribute, return with a failure */
 			return NULL;
 	}
-	bfcp_build_commonheader(message, entity, UserQuery);
+	bfcp_build_commonheader(message, entity, UserQuery, 0);
 	return message;
 }
 
 /* 1*[FLOOR-REQUEST-INFORMATION] */
-bfcp_message *bfcp_build_message_UserStatus(bfcp_entity *entity, bfcp_user_information *beneficiary, bfcp_floor_request_information *frqInfo)
+bfcp_message *bfcp_build_message_UserStatus(bfcp_entity *entity, bfcp_user_information *beneficiary, bfcp_floor_request_information *frqInfo, int response_on_unreliable)
 {
 	int err;
 	bfcp_message *message = bfcp_new_message(NULL, 0);
@@ -190,7 +211,7 @@ bfcp_message *bfcp_build_message_UserStatus(bfcp_entity *entity, bfcp_user_infor
 			return NULL;
 		temp = temp->next;
 	}
-	bfcp_build_commonheader(message, entity, UserStatus);
+	bfcp_build_commonheader(message, entity, UserStatus, 0 | response_on_unreliable);
 	return message;
 }
 
@@ -213,7 +234,7 @@ bfcp_message *bfcp_build_message_FloorQuery(bfcp_entity *entity, bfcp_floor_id_l
 			temp = temp->next;
 		}
 	}
-	bfcp_build_commonheader(message, entity, FloorQuery);
+	bfcp_build_commonheader(message, entity, FloorQuery, 0);
 	return message;
 }
 
@@ -243,7 +264,7 @@ bfcp_message *bfcp_build_message_FloorStatus(bfcp_entity *entity, bfcp_floor_id_
 			temp = temp->next;
 		}
 	}
-	bfcp_build_commonheader(message, entity, FloorStatus);
+	bfcp_build_commonheader(message, entity, FloorStatus, 0);
 	return message;
 }
 
@@ -259,16 +280,16 @@ bfcp_message *bfcp_build_message_ChairAction(bfcp_entity *entity, bfcp_floor_req
 	err = bfcp_build_attribute_FLOOR_REQUEST_INFORMATION(message, frqInfo);	/* This attribute is compulsory */
 	if(err == -1)	/* We couldn't build this attribute, return with a failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, ChairAction);
+	bfcp_build_commonheader(message, entity, ChairAction, 0);
 	return message;
 }
 
-bfcp_message *bfcp_build_message_ChairActionAck(bfcp_entity *entity)
+bfcp_message *bfcp_build_message_ChairActionAck(bfcp_entity *entity, int response_on_unreliable)
 {
 	bfcp_message *message = bfcp_new_message(NULL, 0);	/* This primitive has no attributes */
 	if(!message)	/* We could not allocate the memory, return a with failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, ChairActionAck);
+	bfcp_build_commonheader(message, entity, ChairActionAck, 0 | response_on_unreliable);
 	return message;
 }
 
@@ -277,11 +298,11 @@ bfcp_message *bfcp_build_message_Hello(bfcp_entity *entity)
 	bfcp_message *message = bfcp_new_message(NULL, 0);	/* This primitive has no attributes */
 	if(!message)	/* We could not allocate the memory, return a with failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, Hello);
+	bfcp_build_commonheader(message, entity, Hello, 0);
 	return message;
 }
 
-bfcp_message *bfcp_build_message_HelloAck(bfcp_entity *entity, bfcp_supported_list *primitives, bfcp_supported_list *attributes)
+bfcp_message *bfcp_build_message_HelloAck(bfcp_entity *entity, bfcp_supported_list *primitives, bfcp_supported_list *attributes, int response_on_unreliable)
 {
 	int err;
 	bfcp_message *message = bfcp_new_message(NULL, 0);
@@ -293,7 +314,7 @@ bfcp_message *bfcp_build_message_HelloAck(bfcp_entity *entity, bfcp_supported_li
 	err = bfcp_build_attribute_SUPPORTED_ATTRIBUTES(message, attributes);
 	if(err == -1)	/* We couldn't build this attribute, return with a failure */
 		return NULL;
-	bfcp_build_commonheader(message, entity, HelloAck);
+	bfcp_build_commonheader(message, entity, HelloAck, 0 | response_on_unreliable);
 	return message;
 }
 
@@ -311,11 +332,59 @@ bfcp_message *bfcp_build_message_Error(bfcp_entity *entity, bfcp_error *error, c
 		if(err == -1)	/* We couldn't build this attribute, return with a failure */
 			return NULL;
 	}
-	bfcp_build_commonheader(message, entity, Error);
+	bfcp_build_commonheader(message, entity, ErrorBfcp, 0);
 	return message;
 }
 
+bfcp_message *bfcp_build_message_FloorRequestStatusAck(bfcp_entity *entity, int response_on_unreliable)
+{
+    bfcp_message *message = bfcp_new_message(NULL, 0);
+    if (!message)	/* We could not allocate the memory, return a with failure */
+        return NULL;
 
+    bfcp_build_commonheader(message, entity, FloorRequestStatusAck, 0 | response_on_unreliable);
+    return message;
+}
+
+bfcp_message * bfcp_build_message_ErrorAck(bfcp_entity * entity, int response_on_unreliable)
+{
+    bfcp_message *message = bfcp_new_message(NULL, 0);
+    if (!message)	/* We could not allocate the memory, return a with failure */
+        return NULL;
+
+    bfcp_build_commonheader(message, entity, ErrorAck, 0 | response_on_unreliable);
+    return message;
+}
+
+bfcp_message *bfcp_build_message_FloorStatusAck(bfcp_entity *entity, int response_on_unreliable)
+{
+    bfcp_message *message = bfcp_new_message(NULL, 0);
+    if (!message)	/* We could not allocate the memory, return a with failure */
+        return NULL;
+
+    bfcp_build_commonheader(message, entity, FloorStatusAck, 0 | response_on_unreliable);
+    return message;
+}
+
+bfcp_message *bfcp_build_message_Goodbye(bfcp_entity *entity)
+{
+    bfcp_message *message = bfcp_new_message(NULL, 0);
+    if (!message)	/* We could not allocate the memory, return a with failure */
+        return NULL;
+
+    bfcp_build_commonheader(message, entity, Goodbye, 0);
+    return message;
+}
+
+bfcp_message *bfcp_build_message_GoodbyeAck(bfcp_entity *entity, int response_on_unreliable)
+{
+    bfcp_message *message = bfcp_new_message(NULL, 0);
+    if (!message)	/* We could not allocate the memory, return a with failure */
+        return NULL;
+
+    bfcp_build_commonheader(message, entity, GoodbyeAck, 0 | response_on_unreliable);
+    return message;
+}
 
 /* Build Attributes */
 

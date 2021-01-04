@@ -16,7 +16,12 @@ static const struct bfcp_primitives {
 	{ ChairActionAck, "ChairActionAck" },
 	{ Hello, "Hello" },
 	{ HelloAck, "HelloAck" },
-	{ Error, "Error" },
+	{ ErrorBfcp, "Error" },
+    { FloorRequestStatusAck, "FloorRequestStatusAck" },
+    { ErrorAck, "ErrorAck" },
+    { FloorStatusAck, "FloorStatusAck" },
+    { Goodbye, "Goodbye" },
+    { GoodbyeAck, "GoodbyeAck" }
 };
 
 static const struct bfcp_attributes {
@@ -82,6 +87,11 @@ static const struct bfcp_error_types {
 	{ BFCP_FLOORREQUEST_DOES_NOT_EXIST, "Floor Request ID Does Not Exist"},
 	{ BFCP_MAX_FLOORREQUESTS_REACHED, "You have Already Reached the Maximum Number of Ongoing Floor Requests for this Floor"},
 	{ BFCP_USE_TLS, "Use TLS"},
+    { BFCP_UNABLE_TO_PARSE_MESSAGE, "Unable to Parse Message"},
+    { BFCP_USE_DTLS, "Use DTLS"},
+    { BFCP_UNSUPPORTED_VERSION, "Unsupported Version"},
+    { BFCP_INCORRECT_MESSAGE_LENGTH, "Incorrect Message Length"},
+    { BFCP_GENERIC_ERROR, "Generic Error"},
 	{ BFCP_DIGEST_ATTRIBUTE_REQUIRED, "Digest Attribute Required"},
 	{ BFCP_INVALID_NONCE, "Invalid Nonce"},
 	{ BFCP_AUTHENTICATION_FAILED, "Authentication Failed"},
@@ -91,10 +101,10 @@ static const struct bfcp_parsing_errors {
 	int error;
 	const char *description;
 } bfcp_parsing_error[] = {
-	{ BFCP_WRONG_VERSION, "Wrong Version Bit" },
-	{ BFCP_RESERVED_NOT_ZERO, "Reserved bits not zeroed" },
-	{ BFCP_UNKNOWN_PRIMITIVE, "Unknown Primitive" },
-	{ BFCP_UNKNOWN_ATTRIBUTE, "Unknown Attribute" },
-	{ BFCP_WRONG_LENGTH, "Wrong Length" },
+	{ BFCP_PARSING_WRONG_VERSION, "Wrong Version Bit" },
+	{ BFCP_PARSING_RESERVED_NOT_ZERO, "Reserved bits not zeroed" },
+	{ BFCP_PARSING_UNKNOWN_PRIMITIVE, "Unknown Primitive" },
+	{ BFCP_PARSING_UNKNOWN_ATTRIBUTE, "Unknown Attribute" },
+	{ BFCP_PARSING_WRONG_LENGTH, "Wrong Length" },
 	{ BFCP_PARSING_ERROR, "Parsing Error" },
 };

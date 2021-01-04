@@ -182,23 +182,32 @@ bfcp_received_message *bfcp_parse_message(bfcp_message *message)
 	ch32 = ntohl(ch32);
 	recvM->version = ((ch32 & 0xE0000000) >> 29);	/* Version bits (must be 001) */
 	if((recvM->version) != 1) {	/* Version is wrong, return with an error */
-		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_WRONG_VERSION);
+		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_PARSING_WRONG_VERSION);
 		if(!(recvM->errors))
 			return NULL;	/* An error occurred while recording the error, return with failure */
 	}
-	recvM->reserved = ((ch32 & 0x1F000000) >> 24);	/* Reserved bits (they should be ignored but we check them anyway) */
+    recvM->responder_flag = ((ch32 & 0x10000000) >> 28);        /* The Transaction Responder (R) flag-bit */
+    recvM->fragmentation_flag = ((ch32 & 0x08000000) >> 27);    /* The Fragmentation(F) flag - bit */
+	recvM->reserved = ((ch32 & 0x07000000) >> 24);	/* Reserved bits (they should be ignored but we check them anyway) */
 	if((recvM->reserved) != 0) {	/* Reserved bits are not 0, return with an error */
-		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_RESERVED_NOT_ZERO);
+		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_PARSING_RESERVED_NOT_ZERO);
 		if(!(recvM->errors))
 			return NULL;	/* An error occurred while recording the error, return with failure */
 	}
 	recvM->primitive = ((ch32 & 0x00FF0000) >> 16);	/* Primitive identifier */
+    /* throw the value of primitive to the application to send an error message with code Unknown Primitive
+    if (recvM->primitive < FloorRequest || recvM->primitive > GoodbyeAck) {
+        recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_PARSING_UNKNOWN_PRIMITIVE);
+        if (!recvM->errors)
+            return NULL;
+    }
+    */
     /* cause the Payload Lenght contains the length of the message in 4-octet units, here we need to multiple with 4 */
 	recvM->length = (ch32 & 0x0000FFFF) * 4 + 12;	/* Payload Lenght of the message + 12 (Common Header) */
 	if((recvM->length != message->length) || (recvM->length % 4)) {	/* The message length is wrong */
 			/* Either the length in the header is different from the length of the buffer... */
 			/*   ...or the length is not a multiple of 4, meaning it's surely not aligned */
-		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_WRONG_LENGTH);
+		recvM->errors = bfcp_received_message_add_error(recvM->errors, 0, BFCP_PARSING_WRONG_LENGTH);
 		if(!(recvM->errors))
 			return NULL;	/* An error occurred while recording the error, return with failure */
 	}
@@ -235,12 +244,12 @@ bfcp_received_message *bfcp_parse_message(bfcp_message *message)
 			We save this error regarding this attribute (temp1 -> Wrong Lenght)
 			and we save it for the attribute before (temp2) too, since it lead us here */
 			temp1->valid = 0;		/* We mark the attribute as not valid */
-			recvM->errors = bfcp_received_message_add_error(recvM->errors, temp1->type, BFCP_WRONG_LENGTH);
+			recvM->errors = bfcp_received_message_add_error(recvM->errors, temp1->type, BFCP_PARSING_WRONG_LENGTH);
 			if(!(recvM->errors))
 				return NULL;	/* An error occurred while recording the error, return with failure */
 			if(previous) {	/* Only add the error if there's an attribute before */
 				previous->valid = 0;	/* We mark the attribute as not valid */
-				recvM->errors = bfcp_received_message_add_error(recvM->errors, previous->type, BFCP_WRONG_LENGTH);
+				recvM->errors = bfcp_received_message_add_error(recvM->errors, previous->type, BFCP_PARSING_WRONG_LENGTH);
 				if(!(recvM->errors))
 					return NULL;	/* An error occurred while recording the error, return with failure */
 			}
@@ -458,7 +467,7 @@ int bfcp_parse_arguments(bfcp_received_message *recvM, bfcp_message *message)
 				}
 				break;
 			default:	/* An unrecognized attribute, remember it */
-				recvM->errors = bfcp_received_message_add_error(recvM->errors, temp->type, BFCP_UNKNOWN_ATTRIBUTE);
+				recvM->errors = bfcp_received_message_add_error(recvM->errors, temp->type, BFCP_PARSING_UNKNOWN_ATTRIBUTE);
 				if(!(recvM->errors))
 					return -1;	/* An error occurred while recording the error, return with failure */
 				temp->valid = 0;	/* We mark the attribute as not valid */

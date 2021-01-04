@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	printf("length = %d,  position = %d\n", message->length, message->position);
-	f = fopen("mesg.hex", "wt");
+	f = fopen("mesg.hex", "wb");
 	if(!f)
 		return -1;
 	fwrite(message->buffer, sizeof(char), message->length, f);
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	bfcp_free_arguments(arguments);
 	bfcp_free_message(message);
 	printf("\nParsing message...\n");
-	f = fopen("mesg.hex", "rt");
+	f = fopen("mesg.hex", "rb");
 	if(!f)
 		return -1;
 	unsigned char buffer[1024];
@@ -87,17 +87,19 @@ int main(int argc, char *argv[])
 	printf("  Message Position: %d\n", message->position);
 	printf("\n**************\n");
 	printf("Common Header:\n");
-	printf("  Version:       %d\n", recvM->version);
-	printf("  Reserved:      %d\n", recvM->reserved);
-	printf("  Primitive:     %d (%s)\n", recvM->primitive, bfcp_primitive[recvM->primitive-1].description);
-	printf("  Lenght:        %d\n", recvM->length);
-	printf("  ConferenceID:  %ld\n", recvM->entity->conferenceID);
-	printf("  TransactionID: %d\n", recvM->entity->transactionID);
-	printf("  UserID         %d\n", recvM->entity->userID);
+	printf("  Version:              %d\n", recvM->version);
+    printf("  Responder Flag:       %d\n", recvM->responder_flag);
+    printf("  Fragmentation Flag:   %d\n", recvM->responder_flag);
+	printf("  Reserved:             %d\n", recvM->reserved);
+	printf("  Primitive:            %d (%s)\n", recvM->primitive, bfcp_primitive[recvM->primitive-1].description);
+	printf("  Lenght:               %d\n", recvM->length);
+	printf("  ConferenceID:         %ld\n", recvM->entity->conferenceID);
+	printf("  TransactionID:        %d\n", recvM->entity->transactionID);
+	printf("  UserID                %d\n", recvM->entity->userID);
 	temp = recvM->first_attribute;
 	if(!temp)
 		return 0;
-	printf("\n***********\n");
+    printf("\n**************\n");
 	printf("Attributes:\n");
 	i = 0;
 	while(temp) {
@@ -111,7 +113,7 @@ int main(int argc, char *argv[])
 		temp = temp->next;
 	}
 	arguments = recvM->arguments;
-	printf("\n**********\n");
+    printf("\n**************\n");
 	printf("Arguments:\n");
 	if(arguments->primitive)
 		printf("  Primitive:        %d (%s)\n---\n", arguments->primitive, bfcp_primitive[arguments->primitive-1].description);
@@ -137,7 +139,7 @@ int main(int argc, char *argv[])
 	if(arguments->bID)
 		printf("  Beneficiary ID:   %d\n---\n", arguments->bID);
 	if(arguments->priority)
-		printf("  Priority:         %d (%s)\n---\n", arguments->priority, bfcp_priority[arguments->priority-1].description);
+		printf("  Priority:         %d (%s)\n---\n", arguments->priority, bfcp_priority[arguments->priority].description);
 	if(arguments->frqInfo) {
 		tempInfo = arguments->frqInfo;
 		while(tempInfo) {
@@ -190,7 +192,7 @@ int main(int argc, char *argv[])
 					printf("      User URI:     %s\n", tempInfo->requested_by->uri);
 			}
 			if(tempInfo->priority)
-				printf("    Priority:       %d (%s)\n", tempInfo->priority, bfcp_priority[tempInfo->priority-1].description);
+				printf("    Priority:       %d (%s)\n", tempInfo->priority, bfcp_priority[tempInfo->priority].description);
 			if(tempInfo->pInfo)
 				printf("    P.P.Info:       %s\n", tempInfo->pInfo);
 			printf("---\n");

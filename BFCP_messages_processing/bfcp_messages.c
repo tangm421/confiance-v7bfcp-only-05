@@ -23,6 +23,7 @@ bfcp_arguments *bfcp_new_arguments(void)
 	arguments->attributes = NULL;
 	arguments->nonce = 0;
 	arguments->digest = NULL;
+    arguments->use_unreliable_transport = 1;
 	return arguments;
 }
 
