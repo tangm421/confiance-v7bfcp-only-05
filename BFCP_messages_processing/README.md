@@ -48,6 +48,8 @@
 ## 修改依据
 由于需要兼容第三方的bfcp标准，目前测试的华为SIP软终端（TE Desktop V6.6.1.815）和宝利通的SIP软终端（Polycom RealPresence Desktop 3.5.1.61139）均以 `16` 作为 `FloorStatusAck` 的值，故而根据[draft-ietf-bfcpbis-rfc4582bis-03](https://datatracker.ietf.org/doc/html/draft-ietf-bfcpbis-rfc4582bis-03)标准草案进行部分内容的适应修改。
 
+## 新的替代标准:RFC8856
+[RFC8856](https://www.rfc-editor.org/rfc/rfc8855.html)于2021-01发布，[新的标准废弃了原有的RFC4582标准](https://datatracker.ietf.org/doc/search?name=Binary+Floor+Control+Protocol+&sort=&rfcs=on&activedrafts=on)。
 
 <br><br><br><br><br>
 -------------------------------------------------------------

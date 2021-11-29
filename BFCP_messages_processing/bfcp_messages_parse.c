@@ -936,7 +936,7 @@ bfcp_floor_request_status *bfcp_parse_attribute_FLOOR_REQUEST_STATUS(bfcp_messag
 			message->position = message->position+4-((attribute->length)%4);
 		bfcp_free_received_attribute(attribute);
 	}
-	fRS = bfcp_new_floor_request_status(fID, rs->rs, rs->qp, sInfo);
+	fRS = bfcp_new_floor_request_status(fID, rs ? rs->rs: 0, rs ? rs->qp : 0, sInfo);
 	if(!fRS)	/* An error occurred in creating a new Floor Request Information */
 		return NULL;
 	if(rs)

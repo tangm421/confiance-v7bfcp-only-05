@@ -472,9 +472,16 @@ bfcp_floor_request_status *bfcp_new_floor_request_status(unsigned short int fID,
 	if(!floor_request_status)	/* We could not allocate the memory, return a with failure */
 		return NULL;
 	floor_request_status->fID = fID;
-	floor_request_status->rs = bfcp_new_request_status(rs, qp);
-	if(!floor_request_status->rs)
-		return NULL;
+    /*
+    * the `rs`(Request Status Flag) is in the range of 1-7,
+    * 0 means the [optional] attribute field REQUEST-STATUS does not exist
+    */
+    if (0 != rs)
+    {
+        floor_request_status->rs = bfcp_new_request_status(rs, qp);
+        if (!floor_request_status->rs)
+            return NULL;
+    }
 	if(sInfo) {
 		floor_request_status->sInfo = calloc(strlen(sInfo)+1, sizeof(char));
 		if(!floor_request_status->sInfo)
